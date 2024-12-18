@@ -60,4 +60,29 @@ public class AuthService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
+    //METODO PARA MOSTRAR UN USUARIO POR SU ID
+    public User getUserById(Long id) {
+        return userRepository.findById(Math.toIntExact(id))
+                .orElseThrow(()-> new IllegalArgumentException("User with ID " + id + " not found"));
+    }
+
+    //METODO PARA ACTUALIZAR POR ID
+    public User updateUser(Long id, User updatedUser) {
+        // Buscar el usuario existente
+        User existingUser = userRepository.findById(Math.toIntExact(id))
+                .orElseThrow(() -> new IllegalArgumentException("User with ID " + id + " not found"));
+
+        // Actualizar los campos necesarios
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setLastname(updatedUser.getLastname());
+        existingUser.setEmail(updatedUser.getEmail());
+        existingUser.setGender(updatedUser.getGender());
+        existingUser.setPhone(updatedUser.getPhone());
+        existingUser.setDni(updatedUser.getDni());
+        existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword())); // Encriptar la nueva contraseña
+
+        // Guardar los cambios
+        return userRepository.save(existingUser);
+    }
 }

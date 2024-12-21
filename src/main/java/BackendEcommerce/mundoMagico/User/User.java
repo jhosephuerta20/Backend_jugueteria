@@ -35,17 +35,13 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(length = 10)
+    @Column(nullable = true, length = 10)
     private String gender;
 
-    @NotBlank(message = "El número de teléfono no puede estar vacío")
-    @Pattern(regexp = "\\d{9}", message = "El número de teléfono debe tener 9 dígitos")
-    @Column(length = 9)
+    @Column(nullable = true, length = 9)
     private String phone;
 
-    @NotBlank(message = "El DNI no puede estar vacío")
-    @Pattern(regexp = "\\d{8}", message = "El DNI debe tener 8 dígitos")
-    @Column(nullable = false, unique = true, length = 8)
+    @Column(nullable = true, unique = true, length = 8)
     private String dni;
 
     @Enumerated(EnumType.STRING)

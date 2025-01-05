@@ -11,10 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +28,21 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        UserDetails user=userRepository.findByUsername(request.getUsername()).orElseThrow();
+        // Intenta autenticar al usuario usando el email
+        Optional<UserDetails> userOptional = userRepository.findByEmail(request.getEmail());
+
+        // Si el usuario no se encontró en ninguna de las dos búsquedas, lanza una excepción
+        UserDetails user = userOptional.orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // Autenticación del usuario
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword()));
+
+        //Genera el token al login
         String token=jwtService.getToken(user);
+        String username = user.getUsername();
         return AuthResponse.builder()
                 .token(token)
+                .username(username)
                 .build();
 
     }
@@ -42,9 +54,9 @@ public class AuthService {
                 .lastname(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .gender(request.getGender())
-                .phone(request.getPhone())
-                .dni(request.getDni())
+               // .gender(request.getGender())
+              //  .phone(request.getPhone())
+             //   .dni(request.getDni())
                 .role(Role.USER)
                 .build();
         //GUARDA EN LA BD AL USUARIO
@@ -52,6 +64,7 @@ public class AuthService {
         //LA CLASE AUTHRESPONSE COMPILA Y DEVUELVE UN TOKEN CREADO EN LA CLASE JWTSERVICE
         return AuthResponse.builder()
                 .token(jwtService.getToken(user))
+                .username(user.getUsername())
                 .build();
 
     }

@@ -56,7 +56,7 @@ public class AuthService {
 
     }
 
-    // Método para obtener los usuarios registrados
+    //Método para obtener los usuarios registrados
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }

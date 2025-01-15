@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class DemoController {
+public class                                                 DemoController {
     private final AuthService authService;
     //END POINT PARA BUSCAR POR ID
     @GetMapping(value = "/user/{id}")

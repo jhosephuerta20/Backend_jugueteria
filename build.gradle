@@ -10,7 +10,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(17)
 	}
 }
 
@@ -44,6 +44,9 @@ dependencies {
 	implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 	implementation 'org.hibernate.validator:hibernate-validator:7.0.2.Final'
 	implementation 'org.glassfish:jakarta.el:4.0.2'
+	//Dependencias de pasarela
+	implementation 'com.stripe:stripe-java:20.115.0'  // última versión
+
 
 
 }

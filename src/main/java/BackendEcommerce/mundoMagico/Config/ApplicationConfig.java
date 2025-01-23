@@ -35,10 +35,10 @@ public class ApplicationConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-//corregido para buscar por email
+
     @Bean
     public UserDetailsService userDetailService() {
-        return email -> userRepository.findByUsername(email)
+        return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

@@ -5,10 +5,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
-    String token;
+    private String token;
+    private String username;
+    private Integer userId;
+
+    // Constructor manual
+    public AuthResponse(String token, String username, Integer userId) {
+        this.token = token;
+        this.username = username;
+        this.userId = userId;
+    }
 }

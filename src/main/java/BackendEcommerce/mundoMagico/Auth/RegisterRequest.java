@@ -14,8 +14,8 @@ public class RegisterRequest {
     String lastname;
     String email;
     String password;
-    String gender;
-    String phone;
-    String dni;
+   // String gender;
+   // String phone;
+   // String dni;
 
 }

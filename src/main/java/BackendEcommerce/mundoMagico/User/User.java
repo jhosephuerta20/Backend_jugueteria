@@ -1,5 +1,7 @@
 package BackendEcommerce.mundoMagico.User;
 
+import BackendEcommerce.mundoMagico.Service.GrantedAuthorityDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.*;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,9 +19,10 @@ import java.util.List;
 @Entity
 @Table(name = "clientes", uniqueConstraints = {@UniqueConstraint(columnNames = {"username"})})
 public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id_user;
+    private Integer id_user;  //
 
     @Column(nullable = false, length = 40)
     private String username;
@@ -35,25 +38,25 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(length = 10)
+    @Column(nullable = true, length = 10)
     private String gender;
 
-    @NotBlank(message = "El número de teléfono no puede estar vacío")
-    @Pattern(regexp = "\\d{9}", message = "El número de teléfono debe tener 9 dígitos")
-    @Column(length = 9)
+    @Column(nullable = true, length = 9)
     private String phone;
 
-    @NotBlank(message = "El DNI no puede estar vacío")
-    @Pattern(regexp = "\\d{8}", message = "El DNI debe tener 8 dígitos")
-    @Column(nullable = false, unique = true, length = 8)
+    @Column(nullable = true, unique = true, length = 8)
     private String dni;
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @JsonDeserialize(using = GrantedAuthorityDeserializer.class) // Usamos el deserializador aquí
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<GrantedAuthority> authorities;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+        return authorities != null ? authorities : List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override

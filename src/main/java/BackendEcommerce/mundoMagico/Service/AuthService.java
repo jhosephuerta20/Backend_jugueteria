@@ -1,22 +1,31 @@
 package BackendEcommerce.mundoMagico.Service;
+import BackendEcommerce.mundoMagico.Jwt.JwtService;
 
 import BackendEcommerce.mundoMagico.Auth.AuthResponse;
+import BackendEcommerce.mundoMagico.Auth.ChangePasswordRequest;
 import BackendEcommerce.mundoMagico.Auth.LoginRequest;
 import BackendEcommerce.mundoMagico.Auth.RegisterRequest;
+import BackendEcommerce.mundoMagico.Exception.UsernameAlreadyExistsException;
 import BackendEcommerce.mundoMagico.Jwt.JwtService;
+import BackendEcommerce.mundoMagico.Repository.ProductoRepository;
 import BackendEcommerce.mundoMagico.Repository.UserRepository;
+import BackendEcommerce.mundoMagico.User.Producto.Producto;
 import BackendEcommerce.mundoMagico.User.Role;
 import BackendEcommerce.mundoMagico.User.User;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.Id;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -27,36 +36,69 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final UserService userService;
+
+    @Autowired
+    private ProductoRepository productoRepository;
+
+
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        UserDetails user=userRepository.findByUsername(request.getUsername()).orElseThrow();
-        String token=jwtService.getToken(user);
+        User userDetails = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userDetails.getUsername(), request.getPassword()));
+
+        Integer userId = userDetails.getId_user();  // Usa el ID como Integer
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        String token = jwtService.getToken(extraClaims, userDetails, userId.toString());  // Si el método getToken requiere un String para el ID
+
         return AuthResponse.builder()
                 .token(token)
+                .username(userDetails.getUsername())
+                .userId(userId)  // Pasa userId como Integer
                 .build();
-
     }
 
+
+
     public AuthResponse register(RegisterRequest request) {
-        //CONSTRUCCION DE UN OBJETO USUARIO
+        // Verificar si el username o el email ya existe
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new BadCredentialsException("El nombre de usuario ya está registrado");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadCredentialsException("El correo electrónico ya está registrado");
+        }
+
+        // Construcción del objeto usuario
         User user = User.builder()
                 .username(request.getUsername())
                 .lastname(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .gender(request.getGender())
-                .phone(request.getPhone())
-                .dni(request.getDni())
                 .role(Role.USER)
                 .build();
-        //GUARDA EN LA BD AL USUARIO
-        userRepository.save(user);
-        //LA CLASE AUTHRESPONSE COMPILA Y DEVUELVE UN TOKEN CREADO EN LA CLASE JWTSERVICE
-        return AuthResponse.builder()
-                .token(jwtService.getToken(user))
-                .build();
 
+        // Guardar el usuario en la base de datos
+        userRepository.save(user);
+
+        // Crear el mapa de claims extra
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        // Obtener el userId
+        String userId = String.valueOf(user.getId_user());  // Convierte el userId a String
+
+        // Generar el token
+        String token = jwtService.getToken(extraClaims, user, userId);
+
+        // Retornar la respuesta con el token generado
+        return AuthResponse.builder()
+                .token(token)
+                .username(user.getUsername()) // Se utiliza el username
+                .userId(user.getId_user())    // Se pasa el userId como Integer
+                .build();
     }
 
     // Método para obtener los usuarios registrados
@@ -64,36 +106,46 @@ public class AuthService {
         return userRepository.findAll();
     }
 
-    //METODO PARA MOSTRAR UN USUARIO POR SU ID
-    public Optional<User> findUserById(Long id) {
-        return userRepository.findById(id);
-    }
 
-    //METODO PARA ACTUALIZAR POR ID
-    public User updateUser(Long id, User updatedUser) {
-        // Buscar el usuario existente usando el id de tipo Long
-        User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User with ID " + id + " not found"));
+    public User updateUserById(Integer id, User updatedUser) {
+        // Verificar si el usuario existe
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
 
-        // Actualizar los campos necesarios
-        existingUser.setUsername(updatedUser.getUsername());
-        existingUser.setLastname(updatedUser.getLastname());
-        existingUser.setEmail(updatedUser.getEmail());
-        existingUser.setGender(updatedUser.getGender());
-        existingUser.setPhone(updatedUser.getPhone());
-        existingUser.setDni(updatedUser.getDni());
-        existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword())); // Encriptar la nueva contraseña
-
-        // Guardar los cambios
-        return userRepository.save(existingUser);
-    }
-
-    //Metodo para eliminar por id
-
-    public void deleteUser(Long id){
-        if(!userRepository.existsById(id)){
-            throw new EntityNotFoundException("Usuario con el ID" + id + "no encontrado");
+        // Verificar si el nuevo username ya está en uso
+        if (!user.getUsername().equals(updatedUser.getUsername()) && userRepository.existsByUsername(updatedUser.getUsername())) {
+            throw new UsernameAlreadyExistsException("El username ya está en uso");
         }
-        userRepository.deleteById(id);
+
+        // Actualizar los detalles del usuario
+        if (updatedUser.getLastname() != null) {
+            user.setLastname(updatedUser.getLastname());
+        }
+
+        if (updatedUser.getEmail() != null) {
+            user.setEmail(updatedUser.getEmail());
+        }
+
+        if (updatedUser.getPhone() != null) {
+            user.setPhone(updatedUser.getPhone());
+        }
+
+        if (updatedUser.getDni() != null) {
+            user.setDni(updatedUser.getDni());
+        }
+
+        if (updatedUser.getGender() != null) {
+            user.setGender(updatedUser.getGender());
+        }
+
+        // Guardar el usuario actualizado
+        return userRepository.save(user);
     }
+    public User getUserById(Integer id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+    }
+
 }
+
+
+

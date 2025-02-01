@@ -73,7 +73,7 @@ public class StripeController {
             // Creamos el PaymentIntent en Stripe
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amountInCents)
-                    .setCurrency("usd") // Definir la moneda como USD
+                    .setCurrency("PEN") // Definir la moneda como USD
                     .putMetadata("productIds", productIds.toString()) // Agregar metadata
                     .build();
 

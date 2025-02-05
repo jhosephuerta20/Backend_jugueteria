@@ -14,6 +14,16 @@ public class Producto {
     private String brand;
     private Double price;
 
+    public Integer getStock() {
+        return stock;
+    }
+
+    public void setStock(Integer stock) {
+        this.stock = stock;
+    }
+
+    private Integer stock;
+
     public String getImage() {
         return image;
     }
